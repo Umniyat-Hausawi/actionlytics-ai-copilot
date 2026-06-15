@@ -1,0 +1,16 @@
+streamlit
+pandas
+numpy
+plotly
+python-dotenv
+anthropic
+scikit-learn
+mlxtend
+langchain
+langchain-community
+langchain-core
+langchain-text-splitters
+langchain-huggingface
+sentence-transformers
+faiss-cpu
+openpyxl

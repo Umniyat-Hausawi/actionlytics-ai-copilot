@@ -1,0 +1,30 @@
+{
+  "stores": [
+    {
+      "id": "demo",
+      "name": "المتجر التجريبي",
+      "db_path": "store.db",
+      "created_at": "2024-01-01",
+      "tables": [
+        "products",
+        "customers",
+        "orders",
+        "campaigns",
+        "carts"
+      ]
+    },
+    {
+      "id": "store_Elegance_Fashion_Store_20260614_015154",
+      "name": "Elegance Fashion Store",
+      "db_path": "store_store_Elegance_Fashion_Store_20260614_015154.db",
+      "created_at": "2026-06-14 01:51",
+      "tables": [
+        "customers",
+        "carts",
+        "campaigns",
+        "products",
+        "orders"
+      ]
+    }
+  ]
+}
