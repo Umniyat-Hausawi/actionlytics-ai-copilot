@@ -376,46 +376,64 @@ QUICK_QUESTIONS = {
             "ما أفضل منتج مبيعاً؟",
             "ما الفئة الأكثر إيراداً؟",
             "أظهر لي المبيعات الشهرية",
+            "ما الإيرادات حسب كل مدينة؟",
         ],
         "👥 العملاء": [
             "قسّم لي العملاء حسب قيمتهم",
             "من العملاء المعرضون للرحيل؟",
             "كم معدل الشراء المتكرر؟",
+            "اعرض أسماء عملاء VIP",
+            "ما توزيع العملاء حسب المدن؟",
         ],
         "📣 الحملات": [
             "ما أفضل حملة إعلانية عندي؟",
-            "ما معدل التحويل عندي؟",
-            "ما معدل الإلغاء عندي؟",
+            "ما عائد الاستثمار للحملات؟",
+            "أي منصة إعلانية أداؤها أفضل؟",
+            "هل ميزانية الحملات فعالة؟",
+            "كيف أحسن أداء الحملات؟",
         ],
         "🤖 التنبؤ": [
             "توقع لي المبيعات الأشهر القادمة",
             "هل في أشهر غير طبيعية في مبيعاتي؟",
             "ما المنتجات التي يشتريها العملاء مع بعض؟",
+            "ما المنتج المتوقع عليه أعلى طلب؟",
+            "ما المنتجات التي ينخفض الطلب عليها؟",
         ],
     },
+
     "English": {
         "📊 Sales": [
             "What is my total revenue?",
             "What is my best selling product?",
             "Which category generates most revenue?",
             "Show me monthly sales trend",
+            "Show revenue by city",
         ],
+
         "👥 Customers": [
             "Segment my customers by value",
             "Which customers are at risk of leaving?",
             "What is my repeat purchase rate?",
+            "Show VIP customer names",
+            "How are customers distributed by city?",
         ],
+
         "📣 Campaigns": [
             "What is my best performing campaign?",
-            "What is my conversion rate?",
-            "What is my cancellation rate?",
+            "What is my campaign ROI?",
+            "Which marketing platform performs best?",
+            "Is my campaign budget effective?",
+            "How can I improve campaign performance?",
         ],
+
         "🤖 Forecast": [
             "Forecast my sales for next months",
             "Are there unusual months in my sales?",
-            "What products do customers buy together?",
+            "Which products are purchased together?",
+            "Which product has the highest predicted demand?",
+            "Which products show declining demand?",
         ],
-    }
+    },
 }
 
 with st.expander("💡 " + ("أسئلة جاهزة" if lang == "Arabic" else "Quick Questions"), expanded=False):
@@ -640,114 +658,129 @@ if "upload_results" in st.session_state and st.session_state["upload_results"]:
         st.success(f"✅ تم تحليل {len(successful)} ملف — الجداول: {', '.join(tables_saved)}" if lang == "Arabic" else f"✅ {len(successful)} files analyzed — Tables: {', '.join(tables_saved)}")
 # ===== Chatbot =====
 st.markdown("---")
-st.markdown(f'<div class="section-title">🤖 {t["assistant"]}</div>', unsafe_allow_html=True)
+if "show_chat" not in st.session_state:
+    st.session_state.show_chat = True
+
+chat_col1, chat_col2 = st.columns([6, 1])
+with chat_col1:
+    st.markdown(f'<div class="section-title">🤖 {t["assistant"]}</div>', unsafe_allow_html=True)
+with chat_col2:
+    toggle_label = "🙈 إخفاء المحادثة" if (lang == "Arabic" and st.session_state.show_chat) else (
+        "💬 إظهار المحادثة" if lang == "Arabic" else ("🙈 Hide Chat" if st.session_state.show_chat else "💬 Show Chat")
+    )
+    if st.button(toggle_label, use_container_width=True, key="toggle_chat_visibility"):
+        st.session_state.show_chat = not st.session_state.show_chat
+        st.rerun()
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "conversation_history" not in st.session_state:
     st.session_state.conversation_history = []
-if "quick_question" in st.session_state:
-    quick_q = st.session_state.pop("quick_question")
-    st.session_state.messages.append({"role": "user", "content": quick_q})
-    with st.spinner("Actionlytics يفكر..."):
-        uploaded_df    = None
-        uploaded_table = None
-        if st.session_state.get("upload_confirmed") and "upload_results" in st.session_state:
-            orders_result = next((r for r in st.session_state["upload_results"] if r["success"] and r["table_name"] == "orders"), None)
-            if orders_result:
-                uploaded_df    = orders_result["df"]
-                uploaded_table = "orders"
-        answer, st.session_state.conversation_history = ask_actionlytics(
-            quick_q, st.session_state.conversation_history,
-            uploaded_df=uploaded_df, uploaded_table=uploaded_table,
-            db_path=active_db_path, products_df=products_df)
-    st.session_state.messages.append({"role": "assistant", "content": answer})
-for message in st.session_state.messages:
-    if message["role"] == "user":
-        st.markdown(f'<div class="chat-message-user">🧑 {message["content"]}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="chat-message-bot">🤖 {message["content"]}</div>', unsafe_allow_html=True)
-if prompt := st.chat_input(t["chat_placeholder"]):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    st.markdown(f'<div class="chat-message-user">🧑 {prompt}</div>', unsafe_allow_html=True)
-    with st.spinner("Actionlytics يفكر..."):
-        uploaded_df    = None
-        uploaded_table = None
-        if st.session_state.get("upload_confirmed") and "upload_results" in st.session_state:
-            orders_result = next((r for r in st.session_state["upload_results"] if r["success"] and r["table_name"] == "orders"), None)
-            if orders_result:
-                uploaded_df    = orders_result["df"]
-                uploaded_table = "orders"
-        answer, st.session_state.conversation_history = ask_actionlytics(
-            prompt, st.session_state.conversation_history,
-            uploaded_df=uploaded_df, uploaded_table=uploaded_table,
-            db_path=active_db_path, products_df=products_df)
-    st.session_state.messages.append({"role": "assistant", "content": answer})
-    st.markdown(f'<div class="chat-message-bot">🤖 {answer}</div>', unsafe_allow_html=True)
-    prompt_lower = prompt.lower()
-    if orders_df is not None and any(w in prompt_lower for w in ['monthly','revenue','مبيعات','إيرادات','شهري','شهرية']):
-        monthly = get_period_comparison(orders_df, products_df)
-        fig = px.line(monthly, x='month', y='total_price', markers=True,
-            labels={'month': 'الشهر' if lang=='Arabic' else 'Month',
-                    'total_price': 'الإيرادات (ريال)' if lang=='Arabic' else 'Revenue (SAR)'})
-        fig.update_traces(line_color='#1D9E75', marker=dict(color='#1D9E75', size=8), fill='tozeroy', fillcolor='rgba(29,158,117,0.08)')
-        fig.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
-            xaxis=dict(showgrid=False, tickangle=45),
-            yaxis=dict(showgrid=True, gridcolor='#E8F4F0'),
-            margin=dict(l=20, r=20, t=20, b=20), height=320)
-        st.plotly_chart(fig, use_container_width=True)
-    elif orders_df is not None and products_df is not None and any(w in prompt_lower for w in ['category','categories','فئة','فئات','الفئة','الفئات','حسب الفئ','إيرادات الفئ']):
-        rev_cat = get_revenue_by_category(orders_df, products_df)
-        fig = px.pie(rev_cat, values='total_price', names='category', color_discrete_sequence=['#1D9E75','#378ADD','#D85A30','#BA7517'])
-        fig.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
-            margin=dict(l=20, r=20, t=20, b=20), height=320, legend=dict(bgcolor='#FFFFFF'))
-        st.plotly_chart(fig, use_container_width=True)
-    elif orders_df is not None and products_df is not None and any(w in prompt_lower for w in ['product','منتج','منتجات','best','أفضل','مبيعا']):
-        best = get_best_products(orders_df, products_df)
-        fig = px.bar(best, x='quantity', y='product_name', orientation='h', color='quantity',
-            color_continuous_scale=['#9FE1CB','#1D9E75'],
-            labels={'quantity': 'الكمية' if lang=='Arabic' else 'Quantity',
-                    'product_name': 'المنتج' if lang=='Arabic' else 'Product'})
-        fig.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
-            xaxis=dict(showgrid=True, gridcolor='#E8F4F0'),
-            yaxis=dict(showgrid=False),
-            margin=dict(l=20, r=20, t=20, b=20), height=320, coloraxis_showscale=False)
-        st.plotly_chart(fig, use_container_width=True)
-    elif campaigns_df is not None and any(w in prompt_lower for w in ['campaign','حملة','حملات','roi','تسويق']):
-        camp = get_campaign_performance(campaigns_df)
-        fig = px.bar(camp, x='campaign_name', y='roi', color='roi', color_continuous_scale=['#9FE1CB','#1D9E75'])
-        fig.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
-            xaxis=dict(showgrid=False, tickangle=45), yaxis=dict(showgrid=True, gridcolor='#E8F4F0'),
-            margin=dict(l=20, r=20, t=20, b=20), height=320, coloraxis_showscale=False)
-        st.plotly_chart(fig, use_container_width=True)
-    elif orders_df is not None and customers_df is not None and any(w in prompt_lower for w in ['segment','عملاء','تقسيم','vip','فئات']):
-        customer_stats, seg_summary = segment_customers(orders_df, customers_df)
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            fig = px.bar(seg_summary, x='segment_label', y='count', color='avg_spent',
-                color_continuous_scale=['#9FE1CB','#1D9E75'], text='count')
-            fig.update_traces(textposition='outside')
+
+if st.session_state.show_chat:
+    if "quick_question" in st.session_state:
+        quick_q = st.session_state.pop("quick_question")
+        st.session_state.messages.append({"role": "user", "content": quick_q})
+        with st.spinner("Actionlytics يفكر..."):
+            uploaded_df    = None
+            uploaded_table = None
+            if st.session_state.get("upload_confirmed") and "upload_results" in st.session_state:
+                orders_result = next((r for r in st.session_state["upload_results"] if r["success"] and r["table_name"] == "orders"), None)
+                if orders_result:
+                    uploaded_df    = orders_result["df"]
+                    uploaded_table = "orders"
+            answer, st.session_state.conversation_history = ask_actionlytics(
+                quick_q, st.session_state.conversation_history,
+                uploaded_df=uploaded_df, uploaded_table=uploaded_table,
+                db_path=active_db_path, products_df=products_df)
+        st.session_state.messages.append({"role": "assistant", "content": answer})
+    for message in st.session_state.messages:
+        if message["role"] == "user":
+            st.markdown(f'<div class="chat-message-user">🧑 {message["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="chat-message-bot">🤖 {message["content"]}</div>', unsafe_allow_html=True)
+    if prompt := st.chat_input(t["chat_placeholder"]):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        st.markdown(f'<div class="chat-message-user">🧑 {prompt}</div>', unsafe_allow_html=True)
+        with st.spinner("Actionlytics يفكر..."):
+            uploaded_df    = None
+            uploaded_table = None
+            if st.session_state.get("upload_confirmed") and "upload_results" in st.session_state:
+                orders_result = next((r for r in st.session_state["upload_results"] if r["success"] and r["table_name"] == "orders"), None)
+                if orders_result:
+                    uploaded_df    = orders_result["df"]
+                    uploaded_table = "orders"
+            answer, st.session_state.conversation_history = ask_actionlytics(
+                prompt, st.session_state.conversation_history,
+                uploaded_df=uploaded_df, uploaded_table=uploaded_table,
+                db_path=active_db_path, products_df=products_df)
+        st.session_state.messages.append({"role": "assistant", "content": answer})
+        st.markdown(f'<div class="chat-message-bot">🤖 {answer}</div>', unsafe_allow_html=True)
+        prompt_lower = prompt.lower()
+        if orders_df is not None and any(w in prompt_lower for w in ['monthly','revenue','مبيعات','إيرادات','شهري','شهرية']):
+            monthly = get_period_comparison(orders_df, products_df)
+            fig = px.line(monthly, x='month', y='total_price', markers=True,
+                labels={'month': 'الشهر' if lang=='Arabic' else 'Month',
+                        'total_price': 'الإيرادات (ريال)' if lang=='Arabic' else 'Revenue (SAR)'})
+            fig.update_traces(line_color='#1D9E75', marker=dict(color='#1D9E75', size=8), fill='tozeroy', fillcolor='rgba(29,158,117,0.08)')
             fig.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
-                xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#E8F4F0'),
+                xaxis=dict(showgrid=False, tickangle=45),
+                yaxis=dict(showgrid=True, gridcolor='#E8F4F0'),
+                margin=dict(l=20, r=20, t=20, b=20), height=320)
+            st.plotly_chart(fig, use_container_width=True)
+        elif orders_df is not None and products_df is not None and any(w in prompt_lower for w in ['category','categories','فئة','فئات','الفئة','الفئات','حسب الفئ','إيرادات الفئ']):
+            rev_cat = get_revenue_by_category(orders_df, products_df)
+            fig = px.pie(rev_cat, values='total_price', names='category', color_discrete_sequence=['#1D9E75','#378ADD','#D85A30','#BA7517'])
+            fig.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
+                margin=dict(l=20, r=20, t=20, b=20), height=320, legend=dict(bgcolor='#FFFFFF'))
+            st.plotly_chart(fig, use_container_width=True)
+        elif orders_df is not None and products_df is not None and any(w in prompt_lower for w in ['product','منتج','منتجات','best','أفضل','مبيعا']):
+            best = get_best_products(orders_df, products_df)
+            fig = px.bar(best, x='quantity', y='product_name', orientation='h', color='quantity',
+                color_continuous_scale=['#9FE1CB','#1D9E75'],
+                labels={'quantity': 'الكمية' if lang=='Arabic' else 'Quantity',
+                        'product_name': 'المنتج' if lang=='Arabic' else 'Product'})
+            fig.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
+                xaxis=dict(showgrid=True, gridcolor='#E8F4F0'),
+                yaxis=dict(showgrid=False),
                 margin=dict(l=20, r=20, t=20, b=20), height=320, coloraxis_showscale=False)
             st.plotly_chart(fig, use_container_width=True)
-        with col_s2:
-            fig_pie = px.pie(seg_summary, values='count', names='segment_label',
-                color_discrete_map={'VIP':'#1D9E75','Regular':'#378ADD','Dormant':'#D85A30'})
-            fig_pie.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
-                margin=dict(l=20, r=20, t=20, b=20), height=320)
-            st.plotly_chart(fig_pie, use_container_width=True)
-    elif orders_df is not None and customers_df is not None and any(w in prompt_lower for w in ['churn','رحيل','خطر','مغادرة','معرضين']):
-        churn_df, churn_summary = predict_churn(orders_df, customers_df)
-        if len(churn_df) > 0:
-            fig = px.bar(churn_df['risk_level'].value_counts().reset_index(), x='risk_level', y='count',
-                color='risk_level', color_discrete_map={'High':'#D85A30','Medium':'#BA7517','Low':'#1D9E75'})
+        elif campaigns_df is not None and any(w in prompt_lower for w in ['campaign','حملة','حملات','roi','تسويق']):
+            camp = get_campaign_performance(campaigns_df)
+            fig = px.bar(camp, x='campaign_name', y='roi', color='roi', color_continuous_scale=['#9FE1CB','#1D9E75'])
             fig.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
-                xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#E8F4F0'),
-                margin=dict(l=20, r=20, t=20, b=20), height=320, showlegend=False)
+                xaxis=dict(showgrid=False, tickangle=45), yaxis=dict(showgrid=True, gridcolor='#E8F4F0'),
+                margin=dict(l=20, r=20, t=20, b=20), height=320, coloraxis_showscale=False)
             st.plotly_chart(fig, use_container_width=True)
-    elif any(w in prompt_lower for w in ['action','توصيات','إجراءات','رسالة','استرجاع','خامل','مخزون','سلة','حملة توصية']):
-        st.markdown(f'<div class="section-title">⚡ {t["smart_actions_title"]}</div>', unsafe_allow_html=True)
-        show_smart_actions(lang, db_path=active_db_path)
+        elif orders_df is not None and customers_df is not None and any(w in prompt_lower for w in ['segment','عملاء','تقسيم','vip','فئات']):
+            customer_stats, seg_summary = segment_customers(orders_df, customers_df)
+            col_s1, col_s2 = st.columns(2)
+            with col_s1:
+                fig = px.bar(seg_summary, x='segment_label', y='count', color='avg_spent',
+                    color_continuous_scale=['#9FE1CB','#1D9E75'], text='count')
+                fig.update_traces(textposition='outside')
+                fig.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
+                    xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#E8F4F0'),
+                    margin=dict(l=20, r=20, t=20, b=20), height=320, coloraxis_showscale=False)
+                st.plotly_chart(fig, use_container_width=True)
+            with col_s2:
+                fig_pie = px.pie(seg_summary, values='count', names='segment_label',
+                    color_discrete_map={'VIP':'#1D9E75','Regular':'#378ADD','Dormant':'#D85A30'})
+                fig_pie.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
+                    margin=dict(l=20, r=20, t=20, b=20), height=320)
+                st.plotly_chart(fig_pie, use_container_width=True)
+        elif orders_df is not None and customers_df is not None and any(w in prompt_lower for w in ['churn','رحيل','خطر','مغادرة','معرضين']):
+            churn_df, churn_summary = predict_churn(orders_df, customers_df)
+            if len(churn_df) > 0:
+                fig = px.bar(churn_df['risk_level'].value_counts().reset_index(), x='risk_level', y='count',
+                    color='risk_level', color_discrete_map={'High':'#D85A30','Medium':'#BA7517','Low':'#1D9E75'})
+                fig.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72',
+                    xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#E8F4F0'),
+                    margin=dict(l=20, r=20, t=20, b=20), height=320, showlegend=False)
+                st.plotly_chart(fig, use_container_width=True)
+        elif any(w in prompt_lower for w in ['action','توصيات','إجراءات','رسالة','استرجاع','خامل','مخزون','سلة','حملة توصية']):
+            st.markdown(f'<div class="section-title">⚡ {t["smart_actions_title"]}</div>', unsafe_allow_html=True)
+            show_smart_actions(lang, db_path=active_db_path)
 # ===== Dynamic Report =====
 if st.session_state.get("show_report", False):
     st.markdown("---")
@@ -835,7 +868,15 @@ if st.session_state.get("show_report", False):
                     color_discrete_sequence=['#1D9E75','#378ADD','#D85A30','#BA7517','#9B59B6','#E67E22'])
                 fig.update_layout(paper_bgcolor='#FFFFFF', plot_bgcolor='#FFFFFF', font_color='#5A7A72', height=280)
                 st.plotly_chart(fig, use_container_width=True)
-        top_p = pd.DataFrame(m['top_products'])
+        if 'top_products' in m:
+            top_p = pd.DataFrame(m.get('top_products', []))
+        elif products_df is not None:
+            try:
+                top_p = get_best_products(result['filtered_orders'], products_df)
+            except Exception:
+                top_p = pd.DataFrame()
+        else:
+            top_p = pd.DataFrame()
         if not top_p.empty and products_df is not None:
             price_col = 'price' if 'price' in products_df.columns else ('selling_price' if 'selling_price' in products_df.columns else None)
             col_p1, col_p2 = st.columns(2)
