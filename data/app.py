@@ -506,6 +506,7 @@ if st.session_state.get("show_kpi", True):
 if st.session_state.get("show_smart_actions", False):
     st.markdown(f'<div class="section-title">⚡ {t["smart_actions_title"]}</div>', unsafe_allow_html=True)
     show_smart_actions(lang, db_path=active_db_path)
+    
 # ===== File Upload =====
 if st.session_state.get("show_upload", False):
     st.markdown(f'<div class="section-title">📂 {t["upload_title"]}</div>', unsafe_allow_html=True)
@@ -540,8 +541,8 @@ if st.session_state.get("show_upload", False):
         st.caption(f"{'الوضع' if lang == 'Arabic' else 'Mode'}: {mode_label}")
         uploaded_files = st.file_uploader("ارفع ملف أو أكثر" if lang == "Arabic" else "Upload one or more files",
             type=["csv", "xlsx", "xls"], accept_multiple_files=True, label_visibility="visible")
-        if uploaded_files and st.button("🔍 تحليل الملفات", use_container_width=True):
-            with st.spinner("Actionlytics يحلل بياناتك..."):
+        if uploaded_files and st.button("🔍 تحليل الملفات" if lang == "Arabic" else "🔍 Analyze Files", use_container_width=True):
+            with st.spinner("Actionlytics يحلل بياناتك..." if lang == "Arabic" else "Actionlytics is analyzing your data..."):
                 tmp_paths = []
                 for uf in uploaded_files:
                     suffix = ".csv" if uf.name.endswith(".csv") else ".xlsx"
@@ -558,18 +559,36 @@ if "upload_results" in st.session_state and st.session_state["upload_results"]:
     results = st.session_state["upload_results"]
     for i, r in enumerate(results):
         if r["success"]:
-            st.markdown(f"#### ✅ {r['file']} — نوع البيانات: `{r['table_name']}`")
-            st.table([{"عمودك": k, "عمودنا": v} for k, v in r["mapping"].items()])
+            st.markdown(f"#### ✅ {r['file']} — " + (f"نوع البيانات: `{r['table_name']}`" if lang == "Arabic" else f"Detected table type: `{r['table_name']}`"))
+            st.table([
+                {
+                    ("عمودك" if lang == "Arabic" else "Your Column"): k,
+                    ("عمودنا" if lang == "Arabic" else "Mapped Column"): v
+                }
+                for k, v in r["mapping"].items()
+            ])
             st.dataframe(r["df"].head(3))
             # ===== Correction Note UI — واضح ومبرز #26 =====
-            st.markdown("""<div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:8px;padding:10px 14px;margin-top:8px;"><b>🔧 هل في خطأ بالتطابق؟</b> اكتب ملاحظتك وسيعيد النظام التحليل مرة أخرى</div>""", unsafe_allow_html=True)
+            st.markdown(
+                """<div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:8px;padding:10px 14px;margin-top:8px;"><b>🔧 هل في خطأ بالتطابق؟</b> اكتب ملاحظتك وسيعيد النظام التحليل مرة أخرى</div>"""
+                if lang == "Arabic"
+                else
+                """<div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:8px;padding:10px 14px;margin-top:8px;"><b>🔧 Mapping issue?</b> Add a correction note and the system will re-analyze the file.</div>""",
+                unsafe_allow_html=True
+            )
             col_fix1, col_fix2 = st.columns([3, 1])
             with col_fix1:
-                correction = st.text_input("مثال: عمود campaign_revenue هو الإيراد الفعلي للحملة مو roi", key=f"fix_{i}")
+                correction = st.text_input(
+                    "مثال: عمود campaign_revenue هو الإيراد الفعلي للحملة مو roi"
+                    if lang == "Arabic"
+                    else
+                    "Example: campaign_revenue is the actual campaign revenue, not ROI",
+                    key=f"fix_{i}"
+                )
             with col_fix2:
                 st.markdown("<br>", unsafe_allow_html=True)
-                if st.button("🔄 إعادة التحليل", key=f"reanalyze_{i}", use_container_width=True) and correction:
-                    with st.spinner("Actionlytics يعيد التحليل بناءً على ملاحظتك..."):
+                if st.button("🔄 إعادة التحليل" if lang == "Arabic" else "🔄 Re-analyze", key=f"reanalyze_{i}", use_container_width=True) and correction:
+                    with st.spinner("Actionlytics يعيد التحليل بناءً على ملاحظتك..." if lang == "Arabic" else "Actionlytics is re-analyzing based on your note..."):
                         new_mapping = map_columns_with_claude(r["df_raw"].columns, r["table_name"], correction_note=correction)
                         new_df = apply_mapping(r["df_raw"], new_mapping)
                         new_df = clean_uploaded_data(new_df)
@@ -578,10 +597,10 @@ if "upload_results" in st.session_state and st.session_state["upload_results"]:
                         st.session_state["upload_results"] = results
                         st.rerun()
         else:
-            st.error(f"❌ {r['file']} — فشل التحليل: {r.get('error', '')}")
+            st.error(f"❌ {r['file']} — " + ((f"فشل التحليل: {r.get('error', '')}") if lang == "Arabic" else (f"Analysis failed: {r.get('error', '')}")))
     if not st.session_state.get("upload_confirmed", False):
         st.warning("⚠️ تأكد من صحة التطابق قبل الحفظ" if lang == "Arabic" else "⚠️ Verify mappings before saving")
-        if st.button("✅ تأكيد", use_container_width=True):
+        if st.button("✅ تأكيد" if lang == "Arabic" else "✅ Confirm", use_container_width=True):
             st.session_state["pending_store_save"] = True
             st.rerun()
     if st.session_state.get("pending_store_save", False):
@@ -594,7 +613,7 @@ if "upload_results" in st.session_state and st.session_state["upload_results"]:
             col_a1, col_a2 = st.columns(2)
             with col_a1:
                 if st.button("💾 حفظ وتحليل" if lang == "Arabic" else "💾 Save & Analyze", use_container_width=True):
-                    with st.spinner("Actionlytics يحفظ بياناتك..."):
+                    with st.spinner("Actionlytics يحفظ بياناتك..." if lang == "Arabic" else "Actionlytics is saving your data..."):
                         db_path = get_store_db_path(target_id)
                         for r in results:
                             if r["success"]:
@@ -624,7 +643,7 @@ if "upload_results" in st.session_state and st.session_state["upload_results"]:
                 if "نعم" in save_choice or "Yes" in save_choice:
                     store_name = st.text_input("اسم المتجر" if lang == "Arabic" else "Store Name", placeholder=t["store_name_placeholder"])
                     if st.button("💾 حفظ وتحليل", use_container_width=True) and store_name:
-                        with st.spinner("Actionlytics يحفظ بياناتك..."):
+                        with st.spinner("Actionlytics يحفظ بياناتك..." if lang == "Arabic" else "Actionlytics is saving your data..."):
                             new_store = create_store(store_name)
                             db_path   = get_store_db_path(new_store["id"])
                             for r in results:
@@ -641,8 +660,8 @@ if "upload_results" in st.session_state and st.session_state["upload_results"]:
                             st.success(f"✅ تم حفظ متجر '{store_name}' بنجاح!" if lang == "Arabic" else f"✅ Store '{store_name}' saved!")
                             st.rerun()
                 else:
-                    if st.button("▶️ تحليل بدون حفظ", use_container_width=True):
-                        with st.spinner("Actionlytics يحلل بياناتك..."):
+                    if st.button("▶️ تحليل بدون حفظ" if lang == "Arabic" else "▶️ Analyze Without Saving", use_container_width=True):
+                        with st.spinner("Actionlytics يحلل بياناتك..." if lang == "Arabic" else "Actionlytics is analyzing your data..."):
                             tmp_db = "temp_session.db"
                             for r in results:
                                 if r["success"]:
