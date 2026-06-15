@@ -62,6 +62,14 @@ Multi-store AI copilot interface with KPI overview, chatbot access, report gener
 
 ---
 
+### Data Upload & AI-Assisted Mapping
+
+CSV and Excel upload workflow with automatic table detection, AI-assisted column mapping, preview, correction notes, and validation before saving.
+
+![Data Upload Mapping](screenshots/data-upload-mapping.png)
+
+---
+
 ### AI Chatbot — Industry Benchmark Analysis
 
 Compare store performance against industry benchmarks using analytics, RAG, and LLM-powered reasoning.
