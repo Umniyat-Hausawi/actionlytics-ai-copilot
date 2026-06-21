@@ -26,7 +26,7 @@ EXPECTED_COLUMNS = {
 def read_uploaded_file(file_path):
     ext = os.path.splitext(file_path)[1].lower()
     if ext == ".csv":
-        df = pd.read_csv(file_path)
+        df = pd.read_csv(file_path, encoding="utf-8-sig")
     elif ext in [".xlsx", ".xls"]:
         df = pd.read_excel(file_path)
     else:
