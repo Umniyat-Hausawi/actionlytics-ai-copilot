@@ -14,3 +14,5 @@ langchain-huggingface
 sentence-transformers
 faiss-cpu
 openpyxl
+torch
+torchvision
